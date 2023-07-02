@@ -1,0 +1,94 @@
+version: "3.9"
+
+networks:
+  maple-net:
+    external: true
+
+services:
+  server:
+    container_name: server
+    build:
+      context: server
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - NODEMAILER_USER=${NODEMAILER_USER:-gooddeeds@internet.ru}
+      - NODEMAILER_PASSWORD=${NODEMAILER_PASSWORD:-4x7ZqwmLUpLwmdaNyzEh}
+      - PORT=8080
+      - TYPEORM_HOST=postgres_container_volunteer
+      - TYPEORM_PORT=5432
+      - TYPEORM_DATABASE=volunteer
+      - TYPEORM_USERNAME=postgres
+      - TYPEORM_PASSWORD=changeme
+      - AUTH_JWT_SECRET_KEY=
+      - MAIL_PORT=2525
+      - MAIL_PROTOCOL=smtp
+      - MAIL_HOST=
+      - MAIL_USER=
+      - AUTH_JWT_ACCESS_SECRET_KEY=RANDOM_STRING_1
+      - AUTH_JWT_REFRESH_SECRET_KEY=RANDOM_STRING_2
+      - AUTH_ENABLE_DEFAULT_CODE=
+      - NEST_DEBUG=0
+      - SWAGGER_URL=/api/docs
+      - SWAGGER_USER=testUser
+      - SWAGGER_PASSWORD=
+    ports:
+      - 8080:8080
+    networks:
+      - maple-net
+
+  client:
+    container_name: client
+    build:
+      context: client
+      dockerfile: Dockerfile
+    depends_on:
+      - server
+    restart: always
+    environment:
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NODEMAILER_USER=${NODEMAILER_USER:-gooddeeds@internet.ru}
+      - NODEMAILER_PASSWORD=${NODEMAILER_PASSWORD:-}
+    ports:
+      - 3000:3000
+    networks:
+      - maple-net
+
+  postgres:
+    container_name: postgres_container_volunteer
+    image: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-volunteer}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - maple-net
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin_container_volunteer
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - maple-net
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  pgadmin:
